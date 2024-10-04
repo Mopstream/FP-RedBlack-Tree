@@ -11,37 +11,39 @@ permissions:
 
 jobs:
   build:
-
+    name: Build
     runs-on: ubuntu-latest
-
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-haskell@v1
+    - uses: haskell-actions/setup@v2
       with:
-        ghc-version: '8.10.3'
-        cabal-version: '3.2'
+          ghc-version: '9.6.6'
+          enable-stack: true
+          stack-version: 'latest'
+    - run: stack --no-terminal build --fast
 
-    - name: Cache
-      uses: actions/cache@v3
-      env:
-        cache-name: cache-cabal
+  hlint:
+    name: Run lint
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: 'Set up HLint'
+      uses: haskell-actions/hlint-setup@v2
+
+    - name: 'Run HLint'
+      uses: haskell-actions/hlint-run@v2
       with:
-        path: ~/.cabal
-        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/cabal.project') }}
-        restore-keys: |
-          ${{ runner.os }}-build-${{ env.cache-name }}-
-          ${{ runner.os }}-build-
-          ${{ runner.os }}-
-
-    - name: Install dependencies
-      run: |
-        cabal update
-        cabal build --only-dependencies --enable-tests --enable-benchmarks
-    - name: Build
-      run: |
-        cabal build --enable-tests --enable-benchmarks all
-        cabal install hlint
-    - name: Lint
-      run: hlint . --report
-    - name: Run tests
-      run: cabal test all
+        path: src/
+        fail-on: warning
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: haskell-actions/setup@v2
+        with:
+          ghc-version: '9.6.6'
+          enable-stack: true
+          stack-version: 'latest'
+      - run: stack --no-terminal test --fast
